@@ -235,14 +235,17 @@ abstract class Files
     /**
      * Creates a directory specified by $path. If the parent directories
      * don't exist yet, they will be created as well.
+     * 
+     * With the default file mode, only the creating user can write inside the directory
+     * and the group can read. Everybody else has no access.
      *
      * @param string $path Path to the directory which shall be created
+     * @param int $mode File mode to create the directory with - should be used as octal, e.g. 0770
      * @return void
      * @throws FilesException
-     * @todo Make mode configurable / make umask configurable
      * @api
      */
-    public static function createDirectoryRecursively(string $path)
+    public static function createDirectoryRecursively(string $path, int $mode = 0750)
     {
         if (substr($path, -2) === '/.') {
             $path = substr($path, 0, -1);
@@ -251,8 +254,10 @@ abstract class Files
             throw new FilesException('Could not create directory "' . $path . '", because a file with that name exists!', 1349340620);
         }
         if (!is_link($path) && !is_dir($path) && $path !== '') {
+            // deactivate the file system umask so that the mode is used exactly as given
             $oldMask = umask(000);
-            mkdir($path, 0777, true);
+            mkdir($path, $mode, true);
+            // reset the umask so that the default file system behavior is used again
             umask($oldMask);
             if (!is_dir($path)) {
                 throw new FilesException('Could not create directory "' . $path . '"!', 1170251400);
